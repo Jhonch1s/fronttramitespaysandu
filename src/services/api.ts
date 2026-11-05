@@ -1,21 +1,12 @@
 import axios from 'axios';
-
 import type { 
-    Requisito, 
-    Paso, 
-    Documentacion, 
-    Video,
-    PreguntaFrecuente,
-    LugarAtencion,
-    Sede,
-    ContactoOrganizacion,
-    CostoTramite,
-    Tramite,
-    Categoria,
-    Organizacion,
-    TipoCostoTramite,
-    ModalidadTramite  
+  Tramite,
+  Categoria,
+  Organizacion,
+  TipoCostoTramite,
+  ModalidadTramite  
 } from "../types";
+import { mockTramites, mockCategorias, mockOrganizaciones } from '../data/mockData';
 
 const API_BASE_URL = 'http://localhost:3000/api/';
 
@@ -29,7 +20,6 @@ export interface GetTramitesParams {
   limit?: number;
 }
 
-
 export interface PaginatedTramitesResponse {
   total: number;
   page: number;
@@ -37,9 +27,9 @@ export interface PaginatedTramitesResponse {
   items: Tramite[];
 }
 
-
 const api = axios.create({
   baseURL: API_BASE_URL,
+  timeout: 3000,
 });
 
 export async function getTramites(params?: GetTramitesParams): Promise<PaginatedTramitesResponse> {
@@ -53,68 +43,160 @@ export async function getTramites(params?: GetTramitesParams): Promise<Paginated
     });
   }
 
+  try {
+    const { data: responseData } = await api.get<any>('/tramites', { params: cleanParams });
+    const payload = responseData?.data || responseData;
 
-  const { data: responseData } = await api.get<any>('/tramites', { params: cleanParams });
+    const items = Array.isArray(payload?.items) 
+      ? payload.items 
+      : Array.isArray(payload) 
+        ? payload 
+        : [];
 
-  const payload = responseData?.data || responseData;
+    if (items.length > 0) {
+      return {
+        total: payload?.total ?? items.length,
+        page: payload?.page ?? 1,
+        totalPages: payload?.totalPages ?? 1,
+        items
+      };
+    }
+  } catch (error) {
+    console.warn('API local no disponible, utilizando catálogo local:', error);
+  }
+
+  // Fallback a mock data
+  let filtered = [...mockTramites];
+
+  if (params?.categoria) {
+    filtered = filtered.filter(t => {
+      const catSlug = typeof t.categoria === 'object' ? t.categoria.slug : t.categoria;
+      const catId = typeof t.categoria === 'object' ? t.categoria._id : t.categoria;
+      return catSlug === params.categoria || catId === params.categoria;
+    });
+  }
+
+  if (params?.modalidad) {
+    filtered = filtered.filter(t => t.modalidad === params.modalidad);
+  }
+
+  if (params?.costoTipo) {
+    filtered = filtered.filter(t => t.costo?.tipo === params.costoTipo);
+  }
+
+  if (params?.destacado) {
+    filtered = filtered.filter(t => t.destacado);
+  }
+
+  const page = params?.page || 1;
+  const limit = params?.limit || 12;
+  const startIndex = (page - 1) * limit;
+  const paginatedItems = filtered.slice(startIndex, startIndex + limit);
 
   return {
-    total: payload?.total ?? 0,
-    page: payload?.page ?? 1,
-    totalPages: payload?.totalPages ?? 1,
-    items: Array.isArray(payload?.items) ? payload.items : []
+    total: filtered.length,
+    page,
+    totalPages: Math.ceil(filtered.length / limit) || 1,
+    items: paginatedItems
   };
 }
 
-
 export async function buscarTramites(q: string, limit: number = 20): Promise<Tramite[]> {
   if (!q.trim()) return [];
-  const { data } = await api.get<Tramite[]>('tramites/buscar', {
-    params: { q, limit }
-  });
-  return data;
-}
 
+  try {
+    const { data } = await api.get<any>('tramites/buscar', {
+      params: { q, limit }
+    });
+    const items = data?.data || data;
+    if (Array.isArray(items) && items.length > 0) {
+      return items;
+    }
+  } catch (error) {
+    console.warn('Búsqueda vía API falló, buscando en datos locales:', error);
+  }
+
+  const query = q.toLowerCase();
+  return mockTramites.filter(t => 
+    t.titulo.toLowerCase().includes(query) ||
+    t.descripcion.toLowerCase().includes(query) ||
+    t.palabrasClave?.some(k => k.toLowerCase().includes(query))
+  ).slice(0, limit);
+}
 
 export async function getTramitesDestacados(): Promise<Tramite[]> {
-  const { data } = await api.get<Tramite[]>('tramites/destacados');
-  return data;
+  try {
+    const { data } = await api.get<any>('tramites/destacados');
+    const items = data?.data || data;
+    if (Array.isArray(items) && items.length > 0) {
+      return items;
+    }
+  } catch (error) {
+    console.warn('API de destacados no disponible, usando locales:', error);
+  }
+  return mockTramites.filter(t => t.destacado);
 }
 
+export async function getTramiteBySlug(slug: string): Promise<Tramite | null> {
+  try {
+    const { data } = await api.get<any>(`tramites/${slug}`);
+    const item = data?.data || data;
+    if (item && item.slug) {
+      return item;
+    }
+  } catch (error) {
+    console.warn(`No se pudo obtener el trámite "${slug}" de la API, buscando localmente:`, error);
+  }
 
-export async function getTramiteBySlug(slug: string): Promise<Tramite> {
-  const { data } = await api.get<Tramite>(`tramites/${slug}`);
-  return data;
+  const local = mockTramites.find(t => t.slug === slug);
+  return local || null;
 }
 
 export async function getCategorias(conConteo: boolean = true): Promise<Categoria[]> {
-  const { data } = await api.get<any>('/categorias', {
-    params: { conConteo }
-  });
-
-  if (Array.isArray(data)) {
-    return data;
+  try {
+    const { data } = await api.get<any>('/categorias', {
+      params: { conConteo }
+    });
+    const items = data?.data || (Array.isArray(data) ? data : data?.categorias);
+    if (Array.isArray(items) && items.length > 0) {
+      return items;
+    }
+  } catch (error) {
+    console.warn('API de categorías no disponible, usando locales:', error);
   }
 
-  if (data && typeof data === 'object') {
-    if (Array.isArray(data.categorias)) return data.categorias;
-    if (Array.isArray(data.data)) return data.data;
-    if (Array.isArray(data.items)) return data.items;
-  }
-
-  return [];
+  return mockCategorias;
 }
-export async function getCategoriasBySlug(slug: string): Promise<Categoria>{
-    const {data} = await api.get<Categoria>(`categorias/${slug}`);
-    return data;
+
+export async function getCategoriasBySlug(slug: string): Promise<Categoria | null> {
+  try {
+    const { data } = await api.get<any>(`categorias/${slug}`);
+    return data?.data || data;
+  } catch (error) {
+    console.warn(`API de categoría "${slug}" no disponible:`, error);
+  }
+  return mockCategorias.find(c => c.slug === slug) || null;
 }
 
 export async function getOrganizaciones(): Promise<Organizacion[]> {
-    const { data } = await api.get<Organizacion[]>(`organizaciones/`);
-    return data;
+  try {
+    const { data } = await api.get<any>(`organizaciones/`);
+    const items = data?.data || data;
+    if (Array.isArray(items) && items.length > 0) {
+      return items;
+    }
+  } catch (error) {
+    console.warn('API de organizaciones no disponible, usando locales:', error);
+  }
+  return mockOrganizaciones;
 }
 
-export async function getOrganizacionById(idOrganizacion: number): Promise<Organizacion> {
-    const {data} = await api.get<Organizacion>(`organizaciones/${idOrganizacion}`);
-    return data;
+export async function getOrganizacionById(idOrganizacion: string): Promise<Organizacion | null> {
+  try {
+    const { data } = await api.get<any>(`organizaciones/${idOrganizacion}`);
+    return data?.data || data;
+  } catch (error) {
+    console.warn(`API de organización "${idOrganizacion}" no disponible:`, error);
+  }
+  return mockOrganizaciones.find(o => o._id === idOrganizacion) || null;
 }
