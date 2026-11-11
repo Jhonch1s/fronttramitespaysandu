@@ -49,11 +49,11 @@ export default function AssistantPage() {
   const messagesRef = useRef<HTMLDivElement>(null);
   const initialTramiteSlug = searchParams.get('tramite');
 
-  const [tramitesList, setTramitesList] = useState<Tramite[]>(mockTramites);
+  const [tramitesList, setTramitesList] = useState<Tramite[]>(import.meta.env.PROD ? [] : mockTramites);
 
   const [messages, setMessages] = useState<Message[]>(() => {
     if (initialTramiteSlug) {
-      const match = mockTramites.find((t) => t.slug === initialTramiteSlug);
+      const match = import.meta.env.PROD ? undefined : mockTramites.find((t) => t.slug === initialTramiteSlug);
       if (match) {
         return [
           WELCOME_MESSAGE,
@@ -77,6 +77,16 @@ export default function AssistantPage() {
       .then((res) => {
         if (!active || !res?.items || res.items.length === 0) return;
         setTramitesList(res.items);
+        if (import.meta.env.PROD && initialTramiteSlug) {
+          const match = res.items.find((t) => t.slug === initialTramiteSlug);
+          if (match) {
+            setMessages((prev) => prev.some((msg) => msg.richCard?.slug === match.slug) ? prev : [
+              ...prev,
+              { id: `rec-${match.slug}`, sender: 'bot', text: `Aquí tenés la ficha técnica directa de "${match.titulo}":`, timestamp: 'Ahora', richCard: match }
+            ]);
+            setCurrentStep('tramite-selected');
+          }
+        }
 
         // Actualizar tarjetas ricas en mensajes previos con los datos frescos de la BD
         setMessages((prev) => prev.map((msg) => {
@@ -94,7 +104,7 @@ export default function AssistantPage() {
 
   const [isTyping, setIsTyping] = useState(false);
   const [currentStep, setCurrentStep] = useState<string>(() => {
-    if (initialTramiteSlug && mockTramites.some(t => t.slug === initialTramiteSlug)) {
+    if (!import.meta.env.PROD && initialTramiteSlug && mockTramites.some(t => t.slug === initialTramiteSlug)) {
       return 'tramite-selected';
     }
     return 'root';
@@ -133,7 +143,7 @@ export default function AssistantPage() {
 
     setTimeout(() => {
       const match = tramiteSlug 
-        ? (tramitesList.find((t) => t.slug === tramiteSlug) || mockTramites.find((t) => t.slug === tramiteSlug))
+        ? (tramitesList.find((t) => t.slug === tramiteSlug) || (!import.meta.env.PROD ? mockTramites.find((t) => t.slug === tramiteSlug) : undefined))
         : undefined;
 
       setMessages((prev) => [

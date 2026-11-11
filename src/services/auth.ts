@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:3000/api/';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/' : 'http://localhost:3000/api/');
 
 export interface UserProfile {
   id: string;
@@ -30,8 +30,11 @@ export async function loginApi(email: string, password: string): Promise<AuthRes
       return data.data;
     }
   } catch (err: any) {
+    if (import.meta.env.PROD) throw new Error(err.response?.data?.message || 'No se pudo iniciar sesión. Intentá nuevamente.');
     console.warn('API de autenticación no disponible o credenciales locales:', err.message);
   }
+
+  if (import.meta.env.PROD) throw new Error('Respuesta de autenticación inválida.');
 
   // Fallback offline con cuentas de prueba oficiales
   if (email === 'admin@paysandu.gub.uy' && password === 'AdminPaysandu2026!') {
@@ -96,8 +99,11 @@ export async function registerApi(data: { username: string; email: string; passw
       return res.data.data;
     }
   } catch (err: any) {
+    if (import.meta.env.PROD) throw new Error(err.response?.data?.message || 'No se pudo registrar la cuenta. Intentá nuevamente.');
     console.warn('API de registro falló o offline, guardando localmente:', err.message);
   }
+
+  if (import.meta.env.PROD) throw new Error('Respuesta de registro inválida.');
 
   // Guardar en usuarios de prueba locales
   const registeredUsersJson = localStorage.getItem('tramites_registered_mock_users');

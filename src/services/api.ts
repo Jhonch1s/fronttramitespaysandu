@@ -9,7 +9,7 @@ import type {
 import { mockTramites, mockCategorias, mockOrganizaciones } from '../data/mockData';
 import { getStoredToken } from './auth';
 
-const API_BASE_URL = 'http://localhost:3000/api/';
+const API_BASE_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '/api/' : 'http://localhost:3000/api/');
 
 export interface GetTramitesParams {
   categoria?: string;
@@ -62,7 +62,7 @@ export async function getTramites(params?: GetTramitesParams): Promise<Paginated
         ? payload 
         : [];
 
-    if (items.length > 0) {
+    if (items.length > 0 || import.meta.env.PROD) {
       return {
         total: payload?.total ?? items.length,
         page: payload?.page ?? 1,
@@ -71,8 +71,11 @@ export async function getTramites(params?: GetTramitesParams): Promise<Paginated
       };
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn('API local no disponible, utilizando catálogo local:', error);
   }
+
+  if (import.meta.env.PROD) throw new Error('Respuesta de catálogo inválida.');
 
   // Fallback a mock data
   let filtered = [...mockTramites];
@@ -118,13 +121,15 @@ export async function buscarTramites(q: string, limit: number = 20): Promise<Tra
       params: { q, limit }
     });
     const items = data?.data || data;
-    if (Array.isArray(items) && items.length > 0) {
+    if (Array.isArray(items) && (items.length > 0 || import.meta.env.PROD)) {
       return items;
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn('Búsqueda vía API falló, buscando en datos locales:', error);
   }
 
+  if (import.meta.env.PROD) throw new Error('Respuesta de búsqueda inválida.');
   const query = q.toLowerCase();
   return mockTramites.filter(t => 
     t.titulo.toLowerCase().includes(query) ||
@@ -137,12 +142,14 @@ export async function getTramitesDestacados(): Promise<Tramite[]> {
   try {
     const { data } = await api.get<any>('tramites/destacados');
     const items = data?.data || data;
-    if (Array.isArray(items) && items.length > 0) {
+    if (Array.isArray(items) && (items.length > 0 || import.meta.env.PROD)) {
       return items;
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn('API de destacados no disponible, usando locales:', error);
   }
+  if (import.meta.env.PROD) throw new Error('Respuesta de destacados inválida.');
   return mockTramites.filter(t => t.destacado);
 }
 
@@ -154,9 +161,11 @@ export async function getTramiteBySlug(slug: string): Promise<Tramite | null> {
       return item;
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn(`No se pudo obtener el trámite "${slug}" de la API, buscando localmente:`, error);
   }
 
+  if (import.meta.env.PROD) return null;
   const local = mockTramites.find(t => t.slug === slug);
   return local || null;
 }
@@ -167,13 +176,15 @@ export async function getCategorias(conConteo: boolean = true): Promise<Categori
       params: { conConteo }
     });
     const items = data?.data || (Array.isArray(data) ? data : data?.categorias);
-    if (Array.isArray(items) && items.length > 0) {
+    if (Array.isArray(items) && (items.length > 0 || import.meta.env.PROD)) {
       return items;
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn('API de categorías no disponible, usando locales:', error);
   }
 
+  if (import.meta.env.PROD) throw new Error('Respuesta de categorías inválida.');
   return mockCategorias;
 }
 
@@ -182,6 +193,7 @@ export async function getCategoriasBySlug(slug: string): Promise<Categoria | nul
     const { data } = await api.get<any>(`categorias/${slug}`);
     return data?.data || data;
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn(`API de categoría "${slug}" no disponible:`, error);
   }
   return mockCategorias.find(c => c.slug === slug) || null;
@@ -191,12 +203,14 @@ export async function getOrganizaciones(): Promise<Organizacion[]> {
   try {
     const { data } = await api.get<any>(`organizaciones/`);
     const items = data?.data || data;
-    if (Array.isArray(items) && items.length > 0) {
+    if (Array.isArray(items) && (items.length > 0 || import.meta.env.PROD)) {
       return items;
     }
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn('API de organizaciones no disponible, usando locales:', error);
   }
+  if (import.meta.env.PROD) throw new Error('Respuesta de organizaciones inválida.');
   return mockOrganizaciones;
 }
 
@@ -205,6 +219,7 @@ export async function getOrganizacionById(idOrganizacion: string): Promise<Organ
     const { data } = await api.get<any>(`organizaciones/${idOrganizacion}`);
     return data?.data || data;
   } catch (error) {
+    if (import.meta.env.PROD) throw error;
     console.warn(`API de organización "${idOrganizacion}" no disponible:`, error);
   }
   return mockOrganizaciones.find(o => o._id === idOrganizacion) || null;
