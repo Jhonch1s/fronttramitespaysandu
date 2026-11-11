@@ -1,9 +1,7 @@
 export type ModalidadTramite = 'Presencial' | 'En Línea' | 'Mixto';
 export type TipoCostoTramite = 'Gratuito' | 'Con Costo' | 'Variable';
 
-
 // Subdocumentos y Subesquemas
-
 
 export interface Requisito {
   _id?: string;
@@ -40,6 +38,7 @@ export interface LugarAtencion {
   direccion: string;
   mapsUrl: string;
   horario?: string;
+  telefono?: string;
 }
 
 export interface PreguntaFrecuente {
@@ -69,9 +68,7 @@ export interface CostoTramite {
   detalles?: string;
 }
 
-
 // Modelos Principales
-
 
 export interface Categoria {
   _id: string;

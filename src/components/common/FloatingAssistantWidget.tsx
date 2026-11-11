@@ -34,7 +34,7 @@ export default function FloatingAssistantWidget() {
             <Sparkles className="w-3 h-3 text-[#FBC02D]" />
           </span>
           <span className="text-[10px] text-blue-100 font-medium leading-none">
-            Asistente Paysandú Joven
+            Asistente Trámites Paysandú
           </span>
         </div>
       </button>

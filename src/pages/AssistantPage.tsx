@@ -2,27 +2,20 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
   Bot, 
-  Send, 
-  Paperclip, 
-  ChevronRight, 
+  RotateCcw, 
   Sparkles, 
-  Compass, 
-  CheckSquare, 
-  CalendarCheck, 
-  Calendar, 
-  Play, 
+  ChevronRight,
+  Layers,
   ArrowRight,
-  UserCheck,
-  Stethoscope,
-  Briefcase,
-  GraduationCap,
-  X,
-  CheckCircle2,
-  ListOrdered
+  Bookmark
 } from 'lucide-react';
-import chatbotBannerBg from '../assets/chatbot-ia.jpg';
 import { mockTramites } from '../data/mockData';
+import { getTramites } from '../services/api';
 import type { Tramite } from '../types';
+import AssistantHeaderBanner from '../components/assistant/AssistantHeaderBanner';
+import AssistantGuidePanel from '../components/assistant/AssistantGuidePanel';
+import AssistantRichCard from '../components/assistant/AssistantRichCard';
+import AssistantDetailModal, { type AssistantModalType } from '../components/assistant/AssistantDetailModal';
 import VideoModal from '../components/common/VideoModal';
 
 interface Message {
@@ -33,29 +26,82 @@ interface Message {
   richCard?: Tramite;
 }
 
+interface ChatOption {
+  label: string;
+  icon?: any;
+  action: () => void;
+}
+
+const WELCOME_MESSAGE: Message = {
+  id: 'm-welcome',
+  sender: 'bot',
+  text: '¡Hola! Soy tu Asistente Digital de Trámites Paysandú.\n\nElegí una de las opciones directas a continuación para guiarte al trámite exacto con sus requisitos actualizados, agenda y videos explicativos:',
+  timestamp: 'Ahora'
+};
+
+function formatCurrentTime(): string {
+  return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function AssistantPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
   const initialTramiteSlug = searchParams.get('tramite');
 
-  // Mensajes iniciales de bienvenida sin emojis
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 'm-1',
-      sender: 'bot',
-      text: 'Bienvenido al Asistente de Trámites Paysandú Joven.\n\nEstoy disponible para orientarte en cualquier trámite municipal, departamental o nacional que necesites realizar en Paysandú. Podés escribir tu consulta o elegir una de las opciones rápidas.',
-      timestamp: 'Ahora'
+  const [tramitesList, setTramitesList] = useState<Tramite[]>(mockTramites);
+
+  const [messages, setMessages] = useState<Message[]>(() => {
+    if (initialTramiteSlug) {
+      const match = mockTramites.find((t) => t.slug === initialTramiteSlug);
+      if (match) {
+        return [
+          WELCOME_MESSAGE,
+          {
+            id: `rec-${Date.now()}`,
+            sender: 'bot',
+            text: `Aquí tenés la ficha técnica directa de "${match.titulo}":`,
+            timestamp: 'Ahora',
+            richCard: match
+          }
+        ];
+      }
     }
-  ]);
+    return [WELCOME_MESSAGE];
+  });
 
-  const [inputVal, setInputVal] = useState('');
+  // Cargar trámites desde la base de datos (con requisitos, videos y agendas actualizados)
+  useEffect(() => {
+    let active = true;
+    getTramites({ limit: 100 })
+      .then((res) => {
+        if (!active || !res?.items || res.items.length === 0) return;
+        setTramitesList(res.items);
+
+        // Actualizar tarjetas ricas en mensajes previos con los datos frescos de la BD
+        setMessages((prev) => prev.map((msg) => {
+          if (!msg.richCard) return msg;
+          const fresh = res.items.find((t) => t.slug === msg.richCard?.slug || t._id === msg.richCard?._id);
+          return fresh ? { ...msg, richCard: fresh } : msg;
+        }));
+      })
+      .catch((err) => {
+        console.warn('Asistente usando catálogo local por error de conexión:', err);
+      });
+
+    return () => { active = false; };
+  }, []);
+
   const [isTyping, setIsTyping] = useState(false);
+  const [currentStep, setCurrentStep] = useState<string>(() => {
+    if (initialTramiteSlug && mockTramites.some(t => t.slug === initialTramiteSlug)) {
+      return 'tramite-selected';
+    }
+    return 'root';
+  });
 
-  // Modales interactivos para los micro-botones de la Rich Card
   const [activeModalData, setActiveModalData] = useState<{
-    type: 'requisitos' | 'guia';
+    type: AssistantModalType;
     tramite: Tramite;
   } | null>(null);
 
@@ -68,543 +114,340 @@ export default function AssistantPage() {
     title: ''
   });
 
-  const handleBotRecommendation = (introText: string, tramite: Tramite) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `rec-${Date.now()}`,
-        sender: 'bot',
-        text: introText,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        richCard: tramite
-      }
-    ]);
-  };
-
-  // Si viene con un slug en URL (ej: /asistente?tramite=cedula-de-identidad)
-  useEffect(() => {
-    if (initialTramiteSlug) {
-      const match = mockTramites.find((t) => t.slug === initialTramiteSlug);
-      if (match) {
-        handleBotRecommendation(
-          `Consultaste sobre el trámite: "${match.titulo}". Te preparé la ficha interactiva con todos sus requisitos y accesos directos:`,
-          match
-        );
-      }
-    }
-  }, [initialTramiteSlug]);
-
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isTyping]);
 
-  const handleSend = (textToSend?: string) => {
-    const text = (textToSend || inputVal).trim();
-    if (!text) return;
+  const addInteraction = (userText: string, botText: string, tramiteSlug?: string, nextStep: string = 'root') => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        id: `usr-${Date.now()}`,
+        sender: 'user',
+        text: userText,
+        timestamp: formatCurrentTime()
+      }
+    ]);
 
-    const userMsg: Message = {
-      id: `usr-${Date.now()}`,
-      sender: 'user',
-      text,
-      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    };
-
-    setMessages((prev) => [...prev, userMsg]);
-    if (!textToSend) setInputVal('');
     setIsTyping(true);
 
-    // Simular respuesta de IA
     setTimeout(() => {
-      const lower = text.toLowerCase();
-      let matchedTramite: Tramite | undefined;
-      let replyText = '';
-
-      if (lower.includes('cédula') || lower.includes('cedula') || lower.includes('identidad') || lower.includes('dnic') || lower.includes('18')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'cedula-de-identidad');
-        replyText = 'Para gestionar tu documento de identidad en Paysandú, la oficina de la DNIC está en Montecaseros 1145. Debés reservar cita previa en la agenda oficial:';
-      } else if (lower.includes('salud') || lower.includes('carné') || lower.includes('carne') || lower.includes('médico') || lower.includes('medico')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'carne-de-salud');
-        replyText = 'Para el carné de salud laboral o estudiantil, recordá que se realiza en la Policlínica Municipal / DDS (Montecaseros 1020). Tenés que presentarte en ayunas de 8 horas:';
-      } else if (lower.includes('bps') || lower.includes('trabajo') || lower.includes('empleo') || lower.includes('laboral') || lower.includes('fonasa')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'inscripcion-laboral-bps');
-        replyText = 'Si conseguiste trabajo o una pasantía formal, podés verificar tu alta laboral y elegir mutualista por FONASA desde el portal Mi BPS en minutos:';
-      } else if (lower.includes('beca') || lower.includes('estudio') || lower.includes('estudiantil') || lower.includes('solidaridad') || lower.includes('cenur') || lower.includes('utec')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'beca-estudiantil-terciaria');
-        replyText = 'El Fondo de Solidaridad ofrece becas terciarias de apoyo económico mensual (~$12.000) para estudiantes de UDELAR CENUR Litoral Norte, UTEC y UTU en Paysandú:';
-      } else if (lower.includes('boleto') || lower.includes('omnibus') || lower.includes('colectivo') || lower.includes('transporte')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'boleto-estudiantil');
-        replyText = 'La Intendencia Departamental de Paysandú otorga el boleto estudiantil 100% gratuito (50 pasajes mensuales) para estudiantes de hasta 25 años:';
-      } else if (lower.includes('libreta') || lower.includes('conducir') || lower.includes('manejar') || lower.includes('auto')) {
-        matchedTramite = mockTramites.find((t) => t.slug === 'primera-libreta-conducir-cat-a');
-        replyText = 'Para sacar la primera libreta de conducir (Categoría A), debés tener 18 años cumplidos y presentar el examen médico en la Dirección de Tránsito (Zorrilla 1234):';
-      } else {
-        replyText = 'Entendido. Para esa consulta te sugiero revisar las siguientes especificaciones o explorar el catálogo de trámites departamentales:';
-        matchedTramite = mockTramites[0];
-      }
+      const match = tramiteSlug 
+        ? (tramitesList.find((t) => t.slug === tramiteSlug) || mockTramites.find((t) => t.slug === tramiteSlug))
+        : undefined;
 
       setMessages((prev) => [
         ...prev,
         {
           id: `bot-${Date.now()}`,
           sender: 'bot',
-          text: replyText,
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          richCard: matchedTramite
+          text: botText,
+          timestamp: formatCurrentTime(),
+          richCard: match
         }
       ]);
       setIsTyping(false);
-    }, 600);
+      setCurrentStep(nextStep);
+    }, 300);
   };
 
-  const quickQuestions = [
-    { label: 'Quiero sacar la cédula', query: 'Quiero sacar o renovar mi cédula de identidad en Paysandú' },
-    { label: 'Necesito carné de salud', query: 'Necesito tramitar el carné de salud laboral o para estudiar' },
-    { label: '¿Cómo me inscribo en BPS?', query: '¿Cómo me inscribo en BPS para mi primer empleo?' },
-    { label: 'Busco becas o ayudas', query: 'Busco becas estudiantiles o apoyo económico para terciarios' },
-  ];
+  const handleReset = () => {
+    setMessages([WELCOME_MESSAGE]);
+    setCurrentStep('root');
+  };
 
-  const quickInputChips = ['Cédula', 'Carné de salud', 'Trabajo', 'Becas', 'Boleto estudiantil', 'Libreta'];
+  // Opciones dinámicas según estado del chatbot
+  const getOptions = (): ChatOption[] => {
+    // 1. PASO: CATEGORÍAS DISPONIBLES (Dinámico desde BD)
+    if (currentStep === 'categories') {
+      const catMap = new Map<string, string>();
+      tramitesList.forEach((t) => {
+        if (typeof t.categoria === 'object' && t.categoria?.slug && t.categoria?.nombre) {
+          catMap.set(t.categoria.slug, t.categoria.nombre);
+        }
+      });
+
+      const catOptions: ChatOption[] = Array.from(catMap.entries()).map(([slug, name]) => ({
+        label: `📂 ${name}`,
+        icon: Layers,
+        action: () => {
+          addInteraction(
+            `Quiero ver trámites de ${name}`,
+            `Aquí tenés los trámites disponibles en la categoría ${name}:`,
+            undefined,
+            `cat:${slug}`
+          );
+        }
+      }));
+
+      catOptions.push({
+        label: '↩ Volver al menú principal',
+        icon: RotateCcw,
+        action: () => setCurrentStep('root')
+      });
+
+      return catOptions;
+    }
+
+    // 2. PASO: LISTA DE TRÁMITES DE UNA CATEGORÍA ESPECÍFICA (Dinámico desde BD)
+    if (currentStep.startsWith('cat:')) {
+      const targetCatSlug = currentStep.replace('cat:', '');
+      const filtered = tramitesList.filter((t) => {
+        if (typeof t.categoria === 'object') {
+          return t.categoria?.slug === targetCatSlug;
+        }
+        return false;
+      });
+
+      const tramiteOptions: ChatOption[] = filtered.slice(0, 8).map((t) => ({
+        label: t.titulo,
+        icon: Bookmark,
+        action: () => addInteraction(
+          `Consultar "${t.titulo}"`,
+          `Guía completa de "${t.titulo}". Podés revisar requisitos, pasos y ver videos tutoriales:`,
+          t.slug,
+          'tramite-selected'
+        )
+      }));
+
+      tramiteOptions.push(
+        {
+          label: '📂 Ver otras categorías',
+          icon: Layers,
+          action: () => setCurrentStep('categories')
+        },
+        {
+          label: '↩ Volver al inicio',
+          icon: RotateCcw,
+          action: () => setCurrentStep('root')
+        }
+      );
+
+      return tramiteOptions;
+    }
+
+    // 3. PASO: MENÚ PRINCIPAL ROOT (Trámites destacados y acceso por categoría)
+    if (currentStep === 'root') {
+      // Tomar los primeros trámites prioritarios activos de la base de datos
+      const topTramites = tramitesList.slice(0, 5);
+
+      const items: ChatOption[] = topTramites.map((t) => ({
+        label: t.titulo,
+        icon: Bookmark,
+        action: () => addInteraction(
+          `Quiero información de ${t.titulo}`,
+          `Aquí tenés la ficha actualizada de "${t.titulo}":`,
+          t.slug,
+          'tramite-selected'
+        )
+      }));
+
+      items.push(
+        {
+          label: 'Explorar por categoría (Salud, Educación, Trabajo, Tránsito...)',
+          icon: Layers,
+          action: () => {
+            addInteraction(
+              'Quiero ver los trámites agrupados por categoría',
+              'Seleccioná la categoría que te interesa explorar:',
+              undefined,
+              'categories'
+            );
+          }
+        },
+        {
+          label: 'Explorar todo el catálogo de trámites',
+          icon: ArrowRight,
+          action: () => navigate('/tramites')
+        }
+      );
+
+      return items;
+    }
+
+    // 4. PASO: ACCIONES POST-SELECCIÓN DE TRÁMITE
+    return [
+      {
+        label: 'Consultar otro trámite',
+        icon: RotateCcw,
+        action: () => addInteraction(
+          'Quiero consultar otro trámite',
+          'Perfecto. Seleccioná sobre qué otra área o trámite necesitás orientación:',
+          undefined,
+          'root'
+        )
+      },
+      {
+        label: 'Explorar por categoría',
+        icon: Layers,
+        action: () => setCurrentStep('categories')
+      },
+      {
+        label: 'Ver todos los trámites en el catálogo',
+        icon: ArrowRight,
+        action: () => navigate('/tramites')
+      },
+      {
+        label: 'Reiniciar conversación',
+        icon: RotateCcw,
+        action: handleReset
+      }
+    ];
+  };
+
+  const options = getOptions();
+
+  // Accesos rápidos del panel lateral basados en los primeros 4 trámites cargados
+  const quickGuideOptions = (tramitesList.slice(0, 4)).map((t) => ({
+    label: t.titulo,
+    action: () => addInteraction(
+      `Quiero información de ${t.titulo}`,
+      `Guía paso a paso sobre ${t.titulo}:`,
+      t.slug,
+      'tramite-selected'
+    )
+  }));
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] pb-16">
-      
-      {/* ========================================================= */}
-      {/* BANNER SUPERIOR CON IMAGEN chatbot-ia.jpg Y TEXTO EN CIMA */}
-      {/* ========================================================= */}
-      <section className="relative overflow-hidden min-h-[260px] md:min-h-[300px] flex items-center mb-8 border-b border-slate-200">
-        
-        {/* Imagen de fondo chatbot-ia.jpg */}
-        <div 
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0 transform scale-102"
-          style={{ backgroundImage: `url("${chatbotBannerBg}")` }}
-        />
+      <AssistantHeaderBanner />
 
-        {/* Overlay difuminado oscuro profesional para máxima legibilidad */}
-        <div className="absolute inset-0 bg-gradient-to-r from-slate-950/90 via-slate-900/80 to-slate-900/40 backdrop-blur-[2px] z-10" />
-
-        {/* Contenido sobre la imagen (en la parte izquierda) */}
-        <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 w-full">
-          <div className="max-w-2xl space-y-3 text-white">
-            <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-200 text-xs font-bold tracking-wide backdrop-blur-md">
-              <Sparkles className="w-3.5 h-3.5 text-[#FBC02D]" />
-              <span>ASISTENTE DIGITAL CIUDADANO • PAYSANDÚ</span>
-            </div>
-
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-white tracking-tight leading-tight">
-              Asistente virtual
-            </h1>
-
-            <p className="text-sm md:text-base text-slate-200 leading-relaxed font-normal max-w-xl">
-              Orientación ágil y consultas las 24 horas. Te ayudamos a encontrar el trámite exacto que necesitás, requisitos oficiales y enlaces de agenda directa.
-            </p>
-          </div>
-        </div>
-
-      </section>
-
-      {/* ========================================================= */}
-      {/* SPLIT VIEW LAYOUT (Diseño de Pantalla Dividida) */}
-      {/* ========================================================= */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
           
-          {/* ======================================================= */}
-          {/* PANEL IZQUIERDO: Guía y Accesos Rápidos (5 columnas) */}
-          {/* ======================================================= */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* Tarjeta Conversá con nuestro asistente */}
-            <div className="bg-white rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm">
-              <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
-                <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#0D47A1] to-[#1565C0] text-white flex items-center justify-center shadow-md">
-                  <Bot className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-bold text-slate-900 leading-tight">
-                    Conversá con nuestro asistente
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    Respuestas rápidas basadas en datos departamentales
-                  </p>
-                </div>
-              </div>
-
-              {/* Bloque ¿Sobre qué querés consultar? */}
-              <div className="mt-6">
-                <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3">
-                  ¿Sobre qué querés consultar?
-                </h3>
-
-                <div className="space-y-2">
-                  {quickQuestions.map((q, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => handleSend(q.query)}
-                      className="w-full text-left p-3.5 rounded-2xl border border-slate-200 hover:border-blue-400 hover:bg-blue-50/50 transition-all flex items-center justify-between group bg-white shadow-2xs cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <span className="w-2 h-2 rounded-full bg-[#1565C0]" />
-                        <span className="text-sm font-semibold text-slate-800 group-hover:text-[#0D47A1] transition-colors">
-                          {q.label}
-                        </span>
-                      </div>
-                      <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-[#0D47A1] group-hover:translate-x-1 transition-all" />
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Bloque ilustrativo de 3 pasos ("¿Cómo te ayudamos?") */}
-            <div className="bg-gradient-to-br from-blue-50/80 via-white to-emerald-50/50 rounded-3xl p-6 sm:p-7 border border-slate-200 shadow-sm space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-[#00897B]" />
-                ¿Cómo funciona la orientación?
-              </h3>
-
-              <div className="space-y-3">
-                <div className="flex items-start gap-3 p-3 bg-white/80 rounded-2xl border border-slate-100">
-                  <div className="p-2 rounded-xl bg-blue-100 text-[#0D47A1] shrink-0 mt-0.5">
-                    <Compass className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-600">
-                    <strong className="text-slate-900 block">1. Escribí tu situación</strong>
-                    Explicá qué necesitás resolver y te orientamos al trámite exacto.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-white/80 rounded-2xl border border-slate-100">
-                  <div className="p-2 rounded-xl bg-emerald-100 text-[#00897B] shrink-0 mt-0.5">
-                    <CheckSquare className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-600">
-                    <strong className="text-slate-900 block">2. Recibí una ficha directa</strong>
-                    Con botones para requisitos, guía paso a paso, agendas y videos.
-                  </div>
-                </div>
-
-                <div className="flex items-start gap-3 p-3 bg-white/80 rounded-2xl border border-slate-100">
-                  <div className="p-2 rounded-xl bg-amber-100 text-amber-700 shrink-0 mt-0.5">
-                    <CalendarCheck className="w-4 h-4" />
-                  </div>
-                  <div className="text-xs text-slate-600">
-                    <strong className="text-slate-900 block">3. Turno oficial</strong>
-                    Acceso con un clic a la agenda de la Intendencia, DNIC o BPS.
-                  </div>
-                </div>
-              </div>
-            </div>
-
+          {/* Panel Izquierdo */}
+          <div className="lg:col-span-5">
+            <AssistantGuidePanel quickOptions={quickGuideOptions} />
           </div>
 
-          {/* ======================================================= */}
-          {/* PANEL DERECHO: Interfaz del Chatbot IA (7 columnas) */}
-          {/* ======================================================= */}
-          <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-md flex flex-col h-[700px] overflow-hidden">
+          {/* Panel Derecho: Chatbot */}
+          <div className="lg:col-span-7 bg-white rounded-3xl border border-slate-200 shadow-md flex flex-col h-[650px] overflow-hidden">
             
-            {/* Header del chat */}
-            <div className="px-6 py-4 bg-white border-b border-slate-200 flex items-center justify-between">
+            {/* Header del Chat */}
+            <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
               <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 rounded-full bg-gradient-to-tr from-[#0D47A1] to-[#1565C0] text-white flex items-center justify-center shadow-sm">
-                  <Bot className="w-5 h-5" />
-                  {/* Punto verde de estado "En línea" */}
-                  <span className="absolute -top-0.5 -right-0.5 flex h-3 w-3">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500 border-2 border-white" />
-                  </span>
+                <div className="relative">
+                  <div className="w-10 h-10 rounded-full bg-[#0D47A1] text-white flex items-center justify-center font-bold shadow-xs">
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-white rounded-full" />
                 </div>
-
                 <div>
-                  <h3 className="font-bold text-slate-900 text-sm leading-tight">
-                    Asistente Paysandú Joven
+                  <h3 className="text-sm font-bold text-slate-900 leading-none">
+                    Asistente Trámites Paysandú
                   </h3>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                    <span className="text-[11px] font-semibold text-emerald-700">En línea</span>
-                    <span className="text-[11px] text-slate-400">• Intendencia de Paysandú</span>
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="text-[11px] font-semibold text-emerald-700">En línea • Guía Paso a Paso</span>
                   </div>
                 </div>
               </div>
 
-              <span className="text-[11px] px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 font-medium">
-                IA Departamental
-              </span>
+              <button
+                onClick={handleReset}
+                title="Reiniciar chat"
+                aria-label="Reiniciar chat"
+                className="p-2 text-slate-400 hover:text-slate-600 rounded-full hover:bg-slate-200/60 transition-colors cursor-pointer"
+              >
+                <RotateCcw className="w-4 h-4" />
+              </button>
             </div>
 
-            {/* Historial de Mensajes */}
-            <div className="flex-1 p-6 overflow-y-auto space-y-4 bg-slate-50/60">
+            {/* Mensajes del Chat */}
+            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/40">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}
+                  className={`flex flex-col ${msg.sender === 'user' ? 'items-end' : 'items-start'} animate-slide-up`}
                 >
-                  {/* Burbuja de Texto */}
                   <div
-                    className={`max-w-[85%] sm:max-w-[80%] p-4 rounded-3xl text-sm leading-relaxed shadow-xs ${
+                    className={`max-w-[90%] sm:max-w-[82%] rounded-3xl px-4 py-3 text-xs sm:text-sm leading-relaxed shadow-xs ${
                       msg.sender === 'user'
-                        ? 'bg-[#1565C0] text-white rounded-tr-xs'
-                        : 'bg-white text-slate-800 border border-slate-200/90 rounded-tl-xs'
+                        ? 'bg-[#1565C0] text-white rounded-br-xs'
+                        : 'bg-white text-slate-800 border border-slate-200/90 rounded-bl-xs'
                     }`}
                   >
-                    <p className="whitespace-pre-line font-medium">{msg.text}</p>
+                    <p className="whitespace-pre-line">{msg.text}</p>
+                    {msg.richCard && (
+                      <AssistantRichCard
+                        tramite={msg.richCard}
+                        onOpenModal={(type, tr) => setActiveModalData({ type, tramite: tr })}
+                        onOpenVideo={(title, url) => setVideoModalData({ isOpen: true, title, url })}
+                      />
+                    )}
                   </div>
-
-                  {/* Rich Card (Tarjeta Integrada en la respuesta de la IA) */}
-                  {msg.richCard && (
-                    <div className="mt-3 w-full max-w-md bg-white rounded-3xl p-5 border-2 border-blue-200 shadow-md space-y-4 animate-fade-in text-slate-800">
-                      
-                      {/* Header de la Rich Card */}
-                      <div className="flex items-start gap-3">
-                        <div className="w-10 h-10 rounded-2xl bg-blue-50 text-[#0D47A1] flex items-center justify-center shrink-0">
-                          {msg.richCard.slug.includes('cedula') ? (
-                            <UserCheck className="w-5 h-5" />
-                          ) : msg.richCard.slug.includes('salud') ? (
-                            <Stethoscope className="w-5 h-5 text-emerald-600" />
-                          ) : msg.richCard.slug.includes('bps') ? (
-                            <Briefcase className="w-5 h-5 text-amber-600" />
-                          ) : (
-                            <GraduationCap className="w-5 h-5 text-indigo-600" />
-                          )}
-                        </div>
-
-                        <div className="flex-1 min-w-0">
-                          <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#1565C0] block">
-                            Recomendación directa
-                          </span>
-                          <h4 className="text-base font-bold text-slate-900 leading-snug">
-                            {msg.richCard.titulo}
-                          </h4>
-                        </div>
-                      </div>
-
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
-                        {msg.richCard.descripcion}
-                      </p>
-
-                      {/* 4 Micro-Botones Intermedios */}
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          onClick={() => setActiveModalData({ type: 'requisitos', tramite: msg.richCard! })}
-                          className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-[#0D47A1] text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <CheckCircle2 className="w-3.5 h-3.5 text-[#00897B]" />
-                          <span>Requisitos</span>
-                        </button>
-
-                        <button
-                          onClick={() => setActiveModalData({ type: 'guia', tramite: msg.richCard! })}
-                          className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-[#0D47A1] text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <ListOrdered className="w-3.5 h-3.5 text-[#1565C0]" />
-                          <span>Guía</span>
-                        </button>
-
-                        {msg.richCard.urlAgenda ? (
-                          <a
-                            href={msg.richCard.urlAgenda}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 hover:border-blue-300 text-slate-700 hover:text-[#0D47A1] text-xs font-bold transition-colors flex items-center justify-center gap-1.5"
-                          >
-                            <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Agendar cita</span>
-                          </a>
-                        ) : (
-                          <button
-                            onClick={() => navigate(`/tramites/${msg.richCard!.slug}`)}
-                            className="py-2 px-3 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs font-bold flex items-center justify-center gap-1.5"
-                          >
-                            <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                            <span>Presencial</span>
-                          </button>
-                        )}
-
-                        <button
-                          onClick={() => {
-                            const vid = msg.richCard?.videos?.[0];
-                            setVideoModalData({
-                              isOpen: true,
-                              title: vid?.titulo || `Tutorial: ${msg.richCard?.titulo}`,
-                              url: vid?.urlVideo
-                            });
-                          }}
-                          className="py-2 px-3 rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 hover:border-emerald-300 text-slate-700 hover:text-emerald-700 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
-                        >
-                          <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />
-                          <span>Ver video</span>
-                        </button>
-                      </div>
-
-                      {/* Botón Principal: Ver trámite completo */}
-                      <button
-                        onClick={() => navigate(`/tramites/${msg.richCard!.slug}`)}
-                        className="w-full py-2.5 rounded-2xl bg-[#1565C0] hover:bg-blue-700 text-white font-bold text-xs sm:text-sm text-center flex items-center justify-center gap-2 transition-all shadow-xs cursor-pointer"
-                      >
-                        <span>Ver trámite completo</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-
-                    </div>
-                  )}
-
                   <span className="text-[10px] text-slate-400 mt-1 px-1">
                     {msg.timestamp}
                   </span>
                 </div>
               ))}
 
-              {/* Indicador de escritura animado */}
               {isTyping && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 bg-white border border-slate-200 p-3 rounded-2xl w-fit">
+                <div className="flex items-center gap-2 text-xs text-slate-500 bg-white border border-slate-200 p-3 rounded-2xl w-fit animate-slide-up shadow-xs">
                   <Bot className="w-4 h-4 text-[#1565C0] animate-bounce" />
-                  <span>Asistente Paysandú Joven está respondiendo...</span>
+                  <span>El asistente está buscando la información...</span>
                 </div>
               )}
 
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Barra de Entrada de Texto (Chat Input) */}
-            <div className="p-4 bg-white border-t border-slate-200">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSend();
-                }}
-                className="flex items-center gap-2"
-              >
-                {/* Clip para adjuntar */}
-                <button
-                  type="button"
-                  aria-label="Adjuntar archivo o imagen"
-                  title="Adjuntar documentación"
-                  onClick={() => alert('Función de carga de documentos disponible para adjuntar cédula o constancias en formato digital.')}
-                  className="p-2.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-full transition-colors cursor-pointer"
-                >
-                  <Paperclip className="w-5 h-5" />
-                </button>
-
-                {/* Input de texto */}
-                <input
-                  type="text"
-                  placeholder="Escribí tu consulta aquí..."
-                  value={inputVal}
-                  onChange={(e) => setInputVal(e.target.value)}
-                  className="flex-1 py-2.5 px-4 text-sm bg-slate-50 border border-slate-200 rounded-full text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1565C0] focus:bg-white transition-all"
-                />
-
-                {/* Botón circular azul de enviar con icono de avión de papel */}
-                <button
-                  type="submit"
-                  disabled={!inputVal.trim()}
-                  aria-label="Enviar mensaje"
-                  className="p-3 rounded-full bg-[#1565C0] text-white hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-[#1565C0] shadow-md transition-all shrink-0 cursor-pointer"
-                >
-                  <Send className="w-4 h-4 ml-0.5" />
-                </button>
-              </form>
-
-              {/* Chips rápidos justo debajo del input */}
-              <div className="flex items-center gap-1.5 overflow-x-auto pt-3 scrollbar-none">
-                <span className="text-[11px] text-slate-400 font-semibold shrink-0 mr-1">
-                  Sugerencias:
+            {/* Opciones Guiadas */}
+            <div className="p-4 bg-white border-t border-slate-200 shrink-0">
+              <div className="mb-2.5 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-[#1565C0]" />
+                  Seleccioná tu consulta:
                 </span>
-                {quickInputChips.map((chip, idx) => (
+                {currentStep !== 'root' && (
                   <button
-                    key={idx}
-                    type="button"
-                    onClick={() => handleSend(`Quiero información sobre ${chip}`)}
-                    className="px-3 py-1 rounded-full text-xs font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0D47A1] text-slate-700 border border-slate-200/70 whitespace-nowrap transition-colors cursor-pointer"
+                    onClick={handleReset}
+                    className="text-[11px] font-semibold text-[#1565C0] hover:underline cursor-pointer"
                   >
-                    {chip}
+                    Volver al inicio
                   </button>
-                ))}
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1">
+                {options.map((opt, idx) => {
+                  const Icon = opt.icon;
+                  return (
+                    <button
+                      key={idx}
+                      onClick={opt.action}
+                      disabled={isTyping}
+                      className="text-left p-3 rounded-2xl border border-slate-200 hover:border-blue-400 bg-slate-50 hover:bg-blue-50/70 text-slate-800 hover:text-[#0D47A1] text-xs font-bold transition-all flex items-center justify-between gap-2 btn-tactile cursor-pointer disabled:opacity-50 shadow-2xs"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        {Icon && <Icon className="w-3.5 h-3.5 shrink-0 text-[#1565C0]" />}
+                        <span className="truncate">{opt.label}</span>
+                      </div>
+                      <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
           </div>
-
         </div>
       </div>
 
-      {/* Modal Rápido para Micro-Botones: Requisitos o Guía */}
-      {activeModalData && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="relative w-full max-w-lg bg-white rounded-3xl p-6 sm:p-7 shadow-2xl border border-slate-200">
-            <div className="flex items-start justify-between pb-4 border-b border-slate-100">
-              <div>
-                <span className="text-xs font-bold text-[#1565C0] uppercase">
-                  {activeModalData.type === 'requisitos' ? 'Requisitos Indispensables' : 'Guía Paso a Paso'}
-                </span>
-                <h3 className="text-lg font-bold text-slate-900 mt-1">
-                  {activeModalData.tramite.titulo}
-                </h3>
-              </div>
-              <button
-                onClick={() => setActiveModalData(null)}
-                className="p-2 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      {/* Modal de Detalle (Requisitos, Guía, Presencial, Video) */}
+      <AssistantDetailModal
+        data={activeModalData}
+        onClose={() => setActiveModalData(null)}
+        onOpenVideo={(title, url) => setVideoModalData({ isOpen: true, title, url })}
+      />
 
-            <div className="py-4 max-h-[50vh] overflow-y-auto space-y-3">
-              {activeModalData.type === 'requisitos' ? (
-                activeModalData.tramite.requisitos?.map((req, idx) => (
-                  <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-                    <CheckCircle2 className="w-4 h-4 text-[#00897B] shrink-0 mt-0.5" />
-                    <span className="text-xs text-slate-800 leading-relaxed">{req.descripcion}</span>
-                  </div>
-                ))
-              ) : (
-                activeModalData.tramite.pasos?.map((paso, idx) => (
-                  <div key={idx} className="p-3 rounded-2xl bg-slate-50 border border-slate-200 flex items-start gap-3">
-                    <div className="w-5 h-5 rounded-full bg-[#1565C0] text-white text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                      {paso.numeroPaso || idx + 1}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900">{paso.tituloPaso}</div>
-                      <div className="text-xs text-slate-600 mt-0.5">{paso.descripcionPaso}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-
-            <div className="pt-4 border-t border-slate-100 flex justify-end gap-2">
-              <button
-                onClick={() => setActiveModalData(null)}
-                className="px-4 py-2 rounded-full bg-slate-100 text-slate-700 font-semibold text-xs cursor-pointer"
-              >
-                Cerrar
-              </button>
-              <button
-                onClick={() => {
-                  const slug = activeModalData.tramite.slug;
-                  setActiveModalData(null);
-                  navigate(`/tramites/${slug}`);
-                }}
-                className="px-5 py-2 rounded-full bg-[#1565C0] text-white font-bold text-xs cursor-pointer"
-              >
-                Ver trámite completo
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Video Modal Player */}
+      {/* Modal de Reproducción de Video */}
       <VideoModal
         isOpen={videoModalData.isOpen}
         onClose={() => setVideoModalData({ isOpen: false, title: '' })}
         title={videoModalData.title}
         videoUrl={videoModalData.url}
       />
-
     </div>
   );
 }

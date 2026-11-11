@@ -1,14 +1,20 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { Search, Filter, Clock, ArrowRight, Tag, X } from 'lucide-react';
+import { Search, Filter, Clock, ArrowRight, Tag, X, Plus } from 'lucide-react';
 import { getTramites, getCategorias } from '../services/api';
+import { getStoredUser } from '../services/auth';
 import type { Tramite, Categoria, ModalidadTramite, TipoCostoTramite } from '../types';
+import AdminTramiteModal from '../components/admin/AdminTramiteModal';
 
 export default function TramitesCatalogPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [tramites, setTramites] = useState<Tramite[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+
+  const currentUser = getStoredUser();
+  const isAdmin = currentUser?.rol === 'ADMIN' || currentUser?.rol === 'EDITOR';
 
   // Filtros desde query params o estado
   const search = searchParams.get('q') || '';
@@ -21,26 +27,30 @@ export default function TramitesCatalogPage() {
     getCategorias().then(setCategorias);
   }, []);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const response = await getTramites({
-        categoria: categoriaSlug || undefined,
-        modalidad: modalidad || undefined,
-        costoTipo: costoTipo || undefined,
-        limit: 20
-      });
-      setTramites(response.items);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  }, [categoriaSlug, modalidad, costoTipo]);
-
   useEffect(() => {
-    loadData();
-  }, [loadData]);
+    let active = true;
+    getTramites({
+      categoria: categoriaSlug || undefined,
+      modalidad: modalidad || undefined,
+      costoTipo: costoTipo || undefined,
+      limit: 40
+    })
+      .then((response) => {
+        if (!active) return;
+        setTramites(response.items);
+      })
+      .catch((e) => {
+        if (!active) return;
+        console.error(e);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [categoriaSlug, modalidad, costoTipo]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -86,18 +96,30 @@ export default function TramitesCatalogPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Encabezado */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2">
-            <Link to="/" className="hover:text-[#1565C0]">Inicio</Link>
-            <span>/</span>
-            <span className="text-slate-900">Catálogo de Trámites</span>
+        <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <div className="flex items-center gap-2 text-xs font-semibold text-slate-500 mb-2">
+              <Link to="/" className="hover:text-[#1565C0]">Inicio</Link>
+              <span>/</span>
+              <span className="text-slate-900">Catálogo de Trámites</span>
+            </div>
+            <h1 className="text-3xl md:text-5xl font-extrabold text-[#0D47A1] tracking-tight">
+              Catálogo de Trámites
+            </h1>
+            <p className="text-slate-600 text-sm md:text-base mt-2 max-w-2xl">
+              Encontrá todos los requisitos, costos y canales oficiales para gestionar tus documentos en Paysandú.
+            </p>
           </div>
-          <h1 className="text-3xl md:text-5xl font-extrabold text-[#0D47A1] tracking-tight">
-            Catálogo de Trámites
-          </h1>
-          <p className="text-slate-600 text-sm md:text-base mt-2 max-w-2xl">
-            Encontrá todos los requisitos, costos y canales oficiales para gestionar tus documentos en Paysandú.
-          </p>
+
+          {isAdmin && (
+            <button
+              onClick={() => setIsAdminModalOpen(true)}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#00897B] hover:bg-[#00796B] text-white font-bold text-xs sm:text-sm shadow-md hover:shadow-lg transition-all btn-tactile cursor-pointer self-start md:self-auto shrink-0"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Nuevo Trámite</span>
+            </button>
+          )}
         </div>
 
         {/* Buscador amplio con botón */}
@@ -310,6 +332,17 @@ export default function TramitesCatalogPage() {
         )}
 
       </div>
+
+      {isAdmin && (
+        <AdminTramiteModal
+          isOpen={isAdminModalOpen}
+          onClose={() => setIsAdminModalOpen(false)}
+          tramiteToEdit={null}
+          onSuccess={(newTramite) => {
+            setTramites((prev) => [newTramite, ...prev]);
+          }}
+        />
+      )}
     </div>
   );
 }

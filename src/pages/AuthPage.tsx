@@ -50,13 +50,6 @@ export default function AuthPage() {
     }
   };
 
-  const fillQuickCredentials = (userEmail: string, userPass: string) => {
-    setEmail(userEmail);
-    setPassword(userPass);
-    setIsRegister(false);
-    setError(null);
-  };
-
   return (
     <div className="min-h-screen bg-[#F8FAFC] py-12 px-4 sm:px-6 lg:px-8 flex flex-col justify-center">
       <div className="max-w-md w-full mx-auto space-y-6">
@@ -72,7 +65,7 @@ export default function AuthPage() {
           </Link>
           <div className="pt-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-              {isRegister ? 'Crear tu cuenta ciudadana' : 'Portal Paysandú Joven'}
+              {isRegister ? 'Crear tu cuenta ciudadana' : 'Trámites Paysandú'}
             </h1>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
               {isRegister
@@ -199,43 +192,12 @@ export default function AuthPage() {
             </button>
           </form>
 
-          {/* Cuentas de Prueba Oficiales para Evaluar */}
-          <div className="mt-6 pt-5 border-t border-slate-100 space-y-2.5">
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block text-center">
-              Cuentas demo para pruebas rápidas
-            </span>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('admin@paysandu.gub.uy', 'AdminPaysandu2026!')}
-                className="p-2.5 text-left rounded-xl bg-slate-50 hover:bg-blue-50 border border-slate-200 text-xs transition-colors cursor-pointer group"
-              >
-                <div className="font-bold text-slate-900 group-hover:text-[#0D47A1]">
-                  Admin Paysandú
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">admin@paysandu.gub.uy</div>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillQuickCredentials('joven@paysandu.gub.uy', 'JovenPaysandu2026!')}
-                className="p-2.5 text-left rounded-xl bg-slate-50 hover:bg-emerald-50 border border-slate-200 text-xs transition-colors cursor-pointer group"
-              >
-                <div className="font-bold text-slate-900 group-hover:text-[#00897B]">
-                  Joven Ciudadano
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">joven@paysandu.gub.uy</div>
-              </button>
-            </div>
-          </div>
-
         </div>
 
         {/* Garantía de Seguridad */}
         <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
           <ShieldCheck className="w-4 h-4 text-[#00897B]" />
-          <span>Autenticación segura con estándares del Estado uruguayo</span>
+          <span>Conexión segura y encriptada</span>
         </div>
 
       </div>

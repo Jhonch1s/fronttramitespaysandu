@@ -204,8 +204,8 @@ export const mockTramites: Tramite[] = [
     },
     tiempoEstimado: '15 minutos de atención presencial',
     dirigidoA: 'Ciudadanos uruguayos y residentes legales a partir de los 18 años (o menores acompañados por tutores).',
-    urlAgenda: 'https://dnic.minterior.gub.uy/agenda',
-    urlTramiteOnline: 'https://www.gub.uy/tramites/cedula-identidad',
+    urlAgenda: 'https://www.gub.uy/tramites/documento-nacional-identidad-renovacion-personas-ciudadanas-naturales-uruguayas',
+    urlTramiteOnline: 'https://www.gub.uy/tramites/documento-nacional-identidad-renovacion-personas-ciudadanas-naturales-uruguayas',
     lugaresAtencion: [
       {
         _id: 'l-dnic-1',
@@ -266,8 +266,8 @@ export const mockTramites: Tramite[] = [
     videos: [
       {
         _id: 'v-1',
-        titulo: 'Guía paso a paso: Cómo sacar tu turno para la Cédula',
-        urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        titulo: 'Cédula de identidad (trámite en línea)',
+        urlVideo: 'https://www.youtube.com/watch?v=NALqFcXNiz4'
       }
     ],
     preguntasFrecuentes: [
@@ -306,7 +306,7 @@ export const mockTramites: Tramite[] = [
     },
     tiempoEstimado: 'Atención en la mañana, entrega en 24 a 48 hs',
     dirigidoA: 'Jóvenes de 18 a 25 años que ingresan a un empleo formal o cursan estudios superiores.',
-    urlAgenda: 'https://agenda.paysandu.gub.uy/salud',
+    urlAgenda: 'https://www.gub.uy/tramites/carne-salud',
     urlTramiteOnline: 'https://www.gub.uy/tramites/carne-salud',
     lugaresAtencion: [
       {
@@ -362,8 +362,8 @@ export const mockTramites: Tramite[] = [
     videos: [
       {
         _id: 'v-s1',
-        titulo: '¿Cómo prepararte para el Carné de Salud?',
-        urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        titulo: 'Carné de Salud en Uruguay: Requisitos y Exámenes',
+        urlVideo: 'https://www.youtube.com/watch?v=j3EdiIcGTSE'
       }
     ],
     preguntasFrecuentes: [
@@ -397,8 +397,8 @@ export const mockTramites: Tramite[] = [
     },
     tiempoEstimado: '10 minutos en línea',
     dirigidoA: 'Jóvenes que ingresan a su primer empleo dependiente, becarios o contratados en Paysandú.',
-    urlAgenda: 'https://www.bps.gub.uy/agendas',
-    urlTramiteOnline: 'https://servicios.bps.gub.uy',
+    urlAgenda: 'https://www.bps.gub.uy',
+    urlTramiteOnline: 'https://www.gub.uy/tramites/constancia-historia-laboral-nominada',
     lugaresAtencion: [
       {
         _id: 'l-bps-1',
@@ -445,8 +445,8 @@ export const mockTramites: Tramite[] = [
     videos: [
       {
         _id: 'v-b1',
-        titulo: 'Primer trabajo: Qué debes saber sobre BPS y Fonasa',
-        urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        titulo: 'Usuario Personal BPS y Servicios en Línea',
+        urlVideo: 'https://www.youtube.com/watch?v=4JLvFKEG3PY'
       }
     ],
     preguntasFrecuentes: [
@@ -535,8 +535,8 @@ export const mockTramites: Tramite[] = [
     videos: [
       {
         _id: 'v-be1',
-        titulo: 'Todo lo que necesitás saber para solicitar la Beca Terciaria',
-        urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        titulo: 'Tutorial solicitud de la Beca Fondo de Solidaridad',
+        urlVideo: 'https://www.youtube.com/watch?v=8JmEjd3ouA0'
       }
     ],
     preguntasFrecuentes: [
@@ -613,6 +613,13 @@ export const mockTramites: Tramite[] = [
         descripcionPaso: 'Se te carga el paquete de hasta 50 boletos mensuales para los colectivos locales.'
       }
     ],
+    videos: [
+      {
+        _id: 'v-bo1',
+        titulo: 'Trámites de Tránsito y Transporte en Paysandú',
+        urlVideo: 'https://www.youtube.com/watch?v=lqMQwTwQEPk'
+      }
+    ],
     preguntasFrecuentes: [
       {
         _id: 'faq-bo1',
@@ -639,7 +646,7 @@ export const mockTramites: Tramite[] = [
     },
     tiempoEstimado: '1 a 3 semanas (según coordinación de clases de academia y exámenes)',
     dirigidoA: 'Personas a partir de 18 años cumplidos radicadas en Paysandú.',
-    urlAgenda: 'https://agenda.paysandu.gub.uy/transito',
+    urlAgenda: 'https://www.paysandu.gub.uy',
     lugaresAtencion: [
       {
         _id: 'l-tra-2',
@@ -693,8 +700,8 @@ export const mockTramites: Tramite[] = [
     videos: [
       {
         _id: 'v-l1',
-        titulo: 'Tips para aprobar el examen teórico y práctico en Paysandú',
-        urlVideo: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        titulo: 'Tramitar licencias de conducir fácil y rápido - Intendencia de Paysandú',
+        urlVideo: 'https://www.youtube.com/watch?v=ddeCuibHqL4'
       }
     ],
     preguntasFrecuentes: [

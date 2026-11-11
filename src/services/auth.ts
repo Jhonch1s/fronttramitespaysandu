@@ -121,6 +121,10 @@ export async function registerApi(data: { username: string; email: string; passw
   };
 }
 
+export function getStoredToken(): string | null {
+  return localStorage.getItem(STORAGE_KEY_TOKEN);
+}
+
 export function getStoredUser(): UserProfile | null {
   try {
     const userStr = localStorage.getItem(STORAGE_KEY_USER);

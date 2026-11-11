@@ -21,7 +21,7 @@ export default function HowWeHelp() {
     },
     {
       number: '03',
-      title: 'Te llevamos al trámite oficial',
+      title: 'Te llevamos al canal directo',
       description: 'Acceso directo con un clic a la agenda web de la Intendencia, DNIC, BPS o formularios en línea para que no pierdas tiempo.',
       icon: CalendarCheck,
       iconBg: 'bg-amber-50 text-amber-600',

@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail, ExternalLink, Heart } from 'lucide-react';
+import {ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import logoTramitesUruguay from '../../assets/logo tramites uruguay.png';
 
@@ -18,7 +18,7 @@ export default function Footer() {
               />
             </Link>
             <p className="text-xs text-slate-500 leading-relaxed">
-              Plataforma digital departamental para la agilización y democratización de trámites ciudadanos para jóvenes sanduceros de 18 a 25 años.
+              Plataforma digital para la agilización y centralización de trámites.
             </p>
           </div>
 
@@ -56,10 +56,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Columna 3: Portales Oficiales */}
           <div className="space-y-3">
             <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-              Portales Oficiales
+              Enlaces de Interés
             </h4>
             <ul className="space-y-2 text-xs">
               <li>
@@ -70,16 +69,6 @@ export default function Footer() {
                   className="hover:text-[#1565C0] transition-colors inline-flex items-center gap-1"
                 >
                   Intendencia de Paysandú <ExternalLink className="w-3 h-3 text-slate-400" />
-                </a>
-              </li>
-              <li>
-                <a 
-                  href="https://agenda.paysandu.gub.uy" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="hover:text-[#1565C0] transition-colors inline-flex items-center gap-1"
-                >
-                  Agenda Web Departamental <ExternalLink className="w-3 h-3 text-slate-400" />
                 </a>
               </li>
               <li>
@@ -105,46 +94,12 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Columna 4: Contacto y Sedes */}
-          <div className="space-y-3">
-            <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-              Contacto y Atención
-            </h4>
-            <div className="space-y-2 text-xs text-slate-500">
-              <div className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 text-[#1565C0] shrink-0 mt-0.5" />
-                <span>18 de Julio y Zorrilla de San Martín, Paysandú</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone className="w-4 h-4 text-[#00897B] shrink-0" />
-                <span>4722 6220 (Central IDP)</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>juventud@paysandu.gub.uy</span>
-              </div>
-            </div>
-            <div className="pt-2">
-              <span className="inline-block px-2.5 py-1 rounded-full bg-slate-100 text-[11px] text-slate-600 font-medium">
-                Horario: Lun a Vie 07:00 a 17:00
-              </span>
-            </div>
-          </div>
-
         </div>
 
         {/* Barra inferior */}
         <div className="mt-10 pt-6 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-400">
-          <div className="flex items-center gap-1">
-            <span>Diseñado con compromiso para las juventudes de Paysandú</span>
-            <Heart className="w-3.5 h-3.5 text-rose-500 fill-current inline mx-0.5" />
-          </div>
           <div className="flex items-center gap-4">
-            <span className="hover:text-slate-600">Accesibilidad WCAG AAA</span>
-            <span>•</span>
-            <span className="hover:text-slate-600">Datos Abiertos IDP</span>
-            <span>•</span>
-            <span>© 2026 Paysandú Joven</span>
+            <span>© 2026 Tramites Paysandú</span>
           </div>
         </div>
       </div>

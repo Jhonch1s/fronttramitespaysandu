@@ -7,6 +7,7 @@ import type {
   ModalidadTramite  
 } from "../types";
 import { mockTramites, mockCategorias, mockOrganizaciones } from '../data/mockData';
+import { getStoredToken } from './auth';
 
 const API_BASE_URL = 'http://localhost:3000/api/';
 
@@ -30,6 +31,14 @@ export interface PaginatedTramitesResponse {
 const api = axios.create({
   baseURL: API_BASE_URL,
   timeout: 3000,
+});
+
+api.interceptors.request.use((config) => {
+  const token = getStoredToken();
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export async function getTramites(params?: GetTramitesParams): Promise<PaginatedTramitesResponse> {
@@ -200,3 +209,47 @@ export async function getOrganizacionById(idOrganizacion: string): Promise<Organ
   }
   return mockOrganizaciones.find(o => o._id === idOrganizacion) || null;
 }
+
+export async function crearTramiteApi(tramiteData: Partial<Tramite>): Promise<Tramite> {
+  const { data } = await api.post('tramites', tramiteData);
+  return data?.data || data;
+}
+
+export async function actualizarTramiteApi(id: string, tramiteData: Partial<Tramite>): Promise<Tramite> {
+  const { data } = await api.put(`tramites/${id}`, tramiteData);
+  return data?.data || data;
+}
+
+export async function eliminarTramiteApi(id: string): Promise<boolean> {
+  const { data } = await api.delete(`tramites/${id}`);
+  return data?.success ?? true;
+}
+
+export interface RequisitoProgresoItem {
+  requisitoId: string;
+  descripcion?: string;
+  completado: boolean;
+  fechaMarcado?: string;
+}
+
+export async function getProgresoTramiteApi(tramiteSlug: string): Promise<RequisitoProgresoItem[]> {
+  try {
+    const { data } = await api.get<any>(`progreso/${tramiteSlug}`);
+    return data?.data || [];
+  } catch {
+    return [];
+  }
+}
+
+export async function toggleRequisitoApi(
+  tramiteSlug: string,
+  payload: { requisitoId: string; descripcion?: string; completado: boolean; tramiteTitulo?: string }
+): Promise<RequisitoProgresoItem[]> {
+  try {
+    const { data } = await api.post<any>(`progreso/${tramiteSlug}/toggle`, payload);
+    return data?.data || [];
+  } catch {
+    return [];
+  }
+}
+

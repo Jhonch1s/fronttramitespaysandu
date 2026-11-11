@@ -59,10 +59,10 @@ export default function Navbar() {
             />
             <div className="hidden sm:flex flex-col border-l border-slate-300 pl-3">
               <span className="text-sm font-extrabold tracking-tight text-[#0D47A1] leading-none">
-                Tramites Paysandú
+                Trámites Paysandú
               </span>
               <span className="text-[10px] font-bold text-[#00897B] tracking-wider uppercase mt-0.5">
-                Portal Departamental
+                Guía Ciudadana
               </span>
             </div>
           </Link>
@@ -97,7 +97,7 @@ export default function Navbar() {
                   : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/80'
               }`}
             >
-              Asistente IA
+              Asistente virtual
             </Link>
           </nav>
 
@@ -231,7 +231,7 @@ export default function Navbar() {
                   isActive('/asistente') ? 'bg-blue-50 text-[#0D47A1]' : 'text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span>Asistente Virtual IA</span>
+                <span>Asistente Guiado</span>
                 <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 font-bold">
                   En línea
                 </span>

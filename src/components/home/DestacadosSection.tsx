@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Clock, ArrowRight, Star, Sparkles } from 'lucide-react';
+import { Clock, ArrowRight, Sparkles } from 'lucide-react';
 import { getTramitesDestacados } from '../../services/api';
 import type { Tramite } from '../../types';
 
@@ -23,10 +23,6 @@ export default function DestacadosSection() {
         
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-12">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-bold mb-2">
-              <Star className="w-3.5 h-3.5 fill-current text-amber-500" />
-              Más consultados por jóvenes
-            </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-[#0D47A1] tracking-tight">
               Trámites destacados
             </h2>
@@ -112,7 +108,7 @@ export default function DestacadosSection() {
                 <Sparkles className="w-3.5 h-3.5" />
                 Intendencia de Paysandú & Juventud
               </span>
-              <h3 className="text-2xl font-extrabold tracking-tight">
+              <h3 className="text-2xl font-extrabold tracking-tight text-white">
                 ¿No encontrás lo que buscás?
               </h3>
               <p className="text-sm text-blue-100 max-w-xl">
