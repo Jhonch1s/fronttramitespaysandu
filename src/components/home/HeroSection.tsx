@@ -32,7 +32,7 @@ export default function HeroSection() {
   ];
 
   return (
-    <section className="relative overflow-hidden min-h-[580px] lg:min-h-[640px] flex items-center text-white">
+    <section className="relative overflow-hidden min-h-[560px] lg:min-h-[620px] flex items-center text-white">
       
       {/* Imagen de Fondo Completa en Grande: paysandu-hero.webp */}
       <div 
@@ -68,21 +68,22 @@ export default function HeroSection() {
           {/* Barra de Búsqueda Flotante (Input Cápsula) */}
           <form 
             onSubmit={handleSearch} 
-            className="relative max-w-xl rounded-full bg-white p-2 border border-white/80 shadow-2xl focus-within:ring-4 focus-within:ring-blue-400/40 transition-all flex items-center"
+            className="relative max-w-xl rounded-2xl sm:rounded-full bg-white p-2 border border-white/80 shadow-2xl focus-within:ring-4 focus-within:ring-blue-400/40 transition-all flex items-center"
           >
             <div className="pl-4 pr-2 text-slate-400">
               <Search className="w-5 h-5 text-[#1565C0]" />
             </div>
             <input
               type="text"
+              aria-label="Buscar un trámite"
               placeholder="Buscá un trámite o escribí tu situación..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full py-2.5 px-2 text-sm sm:text-base text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none font-medium"
+              className="min-w-0 w-full py-2.5 px-2 text-sm sm:text-base text-slate-900 placeholder-slate-400 bg-transparent focus:outline-none font-medium"
             />
             <button
               type="submit"
-              className="rounded-full bg-[#1565C0] hover:bg-blue-700 active:scale-95 text-white font-semibold px-6 sm:px-8 py-3 transition-all duration-200 shadow-md hover:shadow-lg shrink-0 flex items-center gap-2 cursor-pointer text-sm"
+              className="rounded-full bg-[#1565C0] hover:bg-blue-700 active:scale-95 text-white font-semibold px-4 sm:px-8 py-3 transition-all duration-200 shadow-md hover:shadow-lg shrink-0 flex items-center gap-2 cursor-pointer text-sm"
             >
               <span>Buscar</span>
             </button>
@@ -112,7 +113,7 @@ export default function HeroSection() {
           <div className="pt-2 flex flex-wrap items-center gap-6 text-xs text-slate-300">
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Requisitos verificados</span>
+              <span>Información para orientarte</span>
             </div>
             <div className="flex items-center gap-1.5">
               <ShieldCheck className="w-4 h-4 text-blue-300 shrink-0" />

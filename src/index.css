@@ -120,3 +120,9 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Keep keyboard navigation visible across the site. */
+:where(a, button, input, select, textarea):focus-visible {
+  outline: 3px solid #1565c0;
+  outline-offset: 3px;
+}

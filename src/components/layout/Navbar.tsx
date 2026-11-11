@@ -68,7 +68,7 @@ export default function Navbar() {
           </Link>
 
           {/* Nav Links Desktop */}
-          <nav className="hidden md:flex items-center gap-1 bg-slate-50 border border-slate-200/80 p-1.5 rounded-full">
+          <nav className="hidden lg:flex items-center gap-1 bg-slate-50 border border-slate-200/80 p-1.5 rounded-full">
             <Link
               to="/"
               className={`px-5 py-2 rounded-full text-sm font-semibold transition-all ${
@@ -102,7 +102,7 @@ export default function Navbar() {
           </nav>
 
           {/* Right Actions Desktop */}
-          <div className="hidden sm:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             {/* Botón ¿Por dónde empiezo? */}
             <button
               onClick={() => setIsModalOpen(true)}
@@ -117,6 +117,7 @@ export default function Navbar() {
               <button
                 onClick={() => setShowQuickSearch(!showQuickSearch)}
                 aria-label="Abrir búsqueda rápida"
+                aria-expanded={showQuickSearch}
                 className="p-2.5 rounded-full text-slate-600 hover:text-[#0D47A1] hover:bg-slate-100 transition-colors focus:outline-none focus:ring-2 focus:ring-[#1565C0] cursor-pointer"
               >
                 <Search className="w-5 h-5" />
@@ -129,13 +130,14 @@ export default function Navbar() {
                     <input
                       type="text"
                       autoFocus
+                      aria-label="Buscar trámite"
                       placeholder="Buscar trámite..."
                       value={quickSearchText}
                       onChange={(e) => setQuickSearchText(e.target.value)}
                       className="w-full px-4 py-2 text-sm bg-slate-50 border border-slate-200 rounded-full focus:outline-none focus:ring-2 focus:ring-[#1565C0] text-slate-800"
                     />
                     <button
-                      type="submit"
+                      aria-label="Buscar" type="submit"
                       className="p-2 bg-[#1565C0] text-white rounded-full hover:bg-blue-700 transition-colors shrink-0"
                     >
                       <Search className="w-4 h-4" />
@@ -173,7 +175,7 @@ export default function Navbar() {
           </div>
 
           {/* Mobile hamburger */}
-          <div className="flex sm:hidden items-center gap-2">
+          <div className="flex lg:hidden items-center gap-2">
             <button
               onClick={() => setIsModalOpen(true)}
               className="p-2 rounded-full bg-emerald-50 text-[#00897B] text-xs font-semibold"
@@ -183,7 +185,8 @@ export default function Navbar() {
             </button>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Abrir menú móvil"
+              aria-label={mobileMenuOpen ? "Cerrar menú" : "Abrir menú"}
+              aria-expanded={mobileMenuOpen}
               className="p-2 rounded-xl text-slate-700 hover:bg-slate-100"
             >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -193,10 +196,11 @@ export default function Navbar() {
 
         {/* Mobile menu drawer */}
         {mobileMenuOpen && (
-          <div className="sm:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 animate-fade-in shadow-lg">
+          <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-3 pb-6 space-y-3 animate-fade-in shadow-lg">
             <form onSubmit={handleSearchSubmit} className="relative">
               <input
                 type="text"
+                aria-label="Buscar trámite"
                 placeholder="Buscar cédula, carné, becas..."
                 value={quickSearchText}
                 onChange={(e) => setQuickSearchText(e.target.value)}

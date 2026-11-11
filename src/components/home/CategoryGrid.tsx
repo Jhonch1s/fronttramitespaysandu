@@ -13,7 +13,6 @@ export default function CategoryGrid() {
       iconBg: 'bg-blue-50',
       iconColor: 'text-[#0D47A1]',
       badge: 'Documentación Básica',
-      count: '3 trámites activos',
       highlightTag: 'Prioridad 18 años',
       queryParam: 'vida-ciudadana'
     },
@@ -25,7 +24,6 @@ export default function CategoryGrid() {
       iconBg: 'bg-emerald-50',
       iconColor: 'text-[#00897B]',
       badge: 'Bienestar & Prevención',
-      count: '2 trámites activos',
       highlightTag: 'Requisito Empleo',
       queryParam: 'salud'
     },
@@ -37,7 +35,6 @@ export default function CategoryGrid() {
       iconBg: 'bg-amber-50',
       iconColor: 'text-amber-600',
       badge: 'Primer Empleo',
-      count: '2 trámites activos',
       highlightTag: 'Seguridad Social',
       queryParam: 'trabajo'
     }
@@ -48,12 +45,12 @@ export default function CategoryGrid() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Cabecera de la sección */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
+        <div className="max-w-3xl mb-10">
           <span className="text-xs font-bold text-[#1565C0] uppercase tracking-wider bg-blue-50 px-3.5 py-1 rounded-full border border-blue-100">
             Categorías Principales
           </span>
           <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 mt-3 tracking-tight">
-            ¿En qué área necesitás resolver hoy?
+            Elegí por dónde empezar
           </h2>
           <p className="text-base text-slate-600 mt-2">
             Accedé rápidamente a los trámites organizados por las etapas más importantes de tu vida cotidiana.
@@ -61,13 +58,13 @@ export default function CategoryGrid() {
         </div>
 
         {/* 3 Tarjetas Principales */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {categories.map((cat) => {
             const Icon = cat.icon;
             return (
               <div
                 key={cat.id}
-                className="group relative bg-white rounded-3xl p-8 border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
+                className="group relative bg-white rounded-2xl p-7 border border-slate-200/90 shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between"
               >
                 <div>
                   {/* Top row: Icon circle and Tag */}
@@ -91,9 +88,7 @@ export default function CategoryGrid() {
 
                 {/* Footer action */}
                 <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                  <span className="text-xs text-slate-400 font-medium">
-                    {cat.count}
-                  </span>
+                  <span className="text-xs text-slate-500 font-medium">Explorar categoría</span>
                   <button
                     onClick={() => navigate(`/tramites?categoria=${cat.queryParam}`)}
                     className="inline-flex items-center gap-1.5 text-sm font-bold text-[#1565C0] group-hover:text-blue-700 transition-colors cursor-pointer"

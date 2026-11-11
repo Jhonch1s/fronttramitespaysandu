@@ -46,7 +46,7 @@ function formatCurrentTime(): string {
 export default function AssistantPage() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesRef = useRef<HTMLDivElement>(null);
   const initialTramiteSlug = searchParams.get('tramite');
 
   const [tramitesList, setTramitesList] = useState<Tramite[]>(mockTramites);
@@ -115,7 +115,7 @@ export default function AssistantPage() {
   });
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    messagesRef.current?.scrollTo({ top: messagesRef.current.scrollHeight, behavior: 'smooth' });
   }, [messages, isTyping]);
 
   const addInteraction = (userText: string, botText: string, tramiteSlug?: string, nextStep: string = 'root') => {
@@ -354,7 +354,7 @@ export default function AssistantPage() {
             </div>
 
             {/* Mensajes del Chat */}
-            <div className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/40">
+            <div ref={messagesRef} className="flex-1 p-4 sm:p-6 overflow-y-auto space-y-4 bg-slate-50/40">
               {messages.map((msg) => (
                 <div
                   key={msg.id}
@@ -389,7 +389,7 @@ export default function AssistantPage() {
                 </div>
               )}
 
-              <div ref={messagesEndRef} />
+
             </div>
 
             {/* Opciones Guiadas */}
